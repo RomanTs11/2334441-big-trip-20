@@ -1,12 +1,22 @@
-/* eslint-disable no-console */
 import AbstractStatefulView from '../framework/view/abstract-stateful-view';
-import { CITIES, EVENT_EMPTY, WAYPOINTS } from '../const';
-import { getRefineFullDate } from '../utils';
+import { getRefineFullDate } from '../utils/events';
+import he from 'he';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 
-function createEventEditTypeTemplate(currentType) {
-  return WAYPOINTS.map((type) => `
+const EVENT_EMPTY = {
+  type: 'taxi',
+  dateFrom: null,
+  dateTo: null,
+  basePrice: 0,
+  offers: [],
+  destination: null,
+  isFavorite: false
+};
+
+function createEventEditTypeTemplate(offers, currentType) {
+  const WAYPOINTS_TYPE = offers.map((offer) => offer.type);
+  return WAYPOINTS_TYPE.map((type) => `
     <div class="event__type-item">
       <input id="event-type-${type}-1"
       class="event__type-input  visually-hidden"
@@ -19,12 +29,12 @@ function createEventEditTypeTemplate(currentType) {
     </div>`).join('');
 }
 
-function createDestinationCitiesTemplate() {
-  return CITIES.map((element) => `<option value="${element}"></option>`).join('');
+function createDestinationCitiesTemplate(destinations) {
+  const CITIES_NAME = destinations.map((element) => element.name);
+  return CITIES_NAME.map((element) => `<option value="${element}"></option>`).join('');
 }
 
 function createOffersTemplate(event, offers) {
-  console.log('debug3', offers);
   const isChecked = (offer) => event.offers.includes(offer.id) ? 'checked' : '';
   const currentOffers = offers.find((element) => element.type === event.type).offers;
 
@@ -50,31 +60,33 @@ function createPicturesDestinationTemplate(destination) {
   }
 }
 
-function createButtonResetTemplate(state) {
+
+function createButtonResetTemplate(state, isDisabled, isDeleting) {
   const isNewEvent = !state.id;
   return isNewEvent
-    ? '<button class="event__reset-btn" type="reset">Cancel</button>'
-    : `<button class="event__reset-btn" type="reset">Delete</button>
-      <button class="event__rollup-btn" type="button">
+    ? `<button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>
+        Cancel
+      </button>`
+    : `<button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>
+        ${isDeleting ? 'Deleting...' : 'Delete'}
+      </button>
+      <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
         <span class="visually-hidden">Open event</span>
       </button>`;
 }
 
 function createEventEditTemplate({state, destinations, offers}) {
   const eventTrip = state;
-  const {basePrice, type, dateFrom, dateTo} = eventTrip;
+  const {basePrice, type, dateFrom, dateTo, isDisabled, isSaving, isDeleting} = eventTrip;
   const dateFullFrom = getRefineFullDate(dateFrom);
   const dateFullTo = getRefineFullDate(dateTo);
-  const citiesTemplate = createDestinationCitiesTemplate();
-  // const currentOffers = offers.find((element) => element.type === type).offers;
   const offersList = createOffersTemplate(eventTrip, offers);
+  const citiesTemplate = createDestinationCitiesTemplate(destinations);
   const destination = destinations.find((element) => element.id === eventTrip.destination);
   const picturesList = createPicturesDestinationTemplate(destination);
-  const buttonReset = createButtonResetTemplate(state);
+  const buttonReset = createButtonResetTemplate(state, isDeleting);
 
   const isDestination = !destination;
-  const isDestinationName = isDestination ? '' : destination.name;
-  const isDestinationDescription = isDestination ? '' : destination.description;
 
   return (
     `<li class="trip-events__item">
@@ -85,11 +97,11 @@ function createEventEditTemplate({state, destinations, offers}) {
               <span class="visually-hidden">Choose event type</span>
               <img class="event__type-icon" width="17" height="17" src="img/icons/${type}.png" alt="Event type icon">
             </label>
-            <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox">
+            <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox" ${isDisabled ? 'disabled' : ''}>
             <div class="event__type-list">
               <fieldset class="event__type-group">
                 <legend class="visually-hidden">Event type</legend>
-                ${createEventEditTypeTemplate(type)}
+                ${createEventEditTypeTemplate(offers, type)}
               </fieldset>
             </div>
           </div>
@@ -98,7 +110,7 @@ function createEventEditTemplate({state, destinations, offers}) {
             ${type}
             </label>
             <input class="event__input  event__input--destination" id="event-destination-1"
-            type="text" name="event-destination" value="${isDestinationName}" list="destination-list-1">
+            type="text" name="event-destination" value="${isDestination ? '' : he.encode(destination.name)}" list="destination-list-1" ${isDisabled ? 'disabled' : ''}>
             <datalist id="destination-list-1"/>
               ${citiesTemplate}
             </datalist>
@@ -106,11 +118,11 @@ function createEventEditTemplate({state, destinations, offers}) {
           <div class="event__field-group  event__field-group--time">
             <label class="visually-hidden" for="event-start-time-1">From</label>
             <input class="event__input  event__input--time" id="event-start-time-1" type="text"
-            name="event-start-time" value="${dateFullFrom}">
+            name="event-start-time" value="${dateFullFrom}" ${isDisabled ? 'disabled' : ''}>
             &mdash;
             <label class="visually-hidden" for="event-end-time-1">To</label>
             <input class="event__input  event__input--time" id="event-end-time-1" type="text"
-            name="event-end-time" value="${dateFullTo}">
+            name="event-end-time" value="${dateFullTo}" ${isDisabled ? 'disabled' : ''}>
           </div>
           <div class="event__field-group  event__field-group--price">
             <label class="event__label" for="event-price-1">
@@ -118,9 +130,12 @@ function createEventEditTemplate({state, destinations, offers}) {
               &euro;
             </label>
             <input class="event__input  event__input--price" id="event-price-1"
-            type="text" name="event-price" value="${basePrice}"/>
+            type="text" name="event-price" value="${basePrice}" ${isDisabled ? 'disabled' : ''}/>
           </div>
-          <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
+          <button class="event__save-btn  btn  btn--blue" type="submit"
+          ${isDisabled ? 'disabled' : ''}>
+            ${isSaving ? 'Saving...' : 'Save'}
+          </button>
           ${buttonReset}
         </header>
         <section class="event__details">
@@ -132,7 +147,7 @@ function createEventEditTemplate({state, destinations, offers}) {
           </section>`}
           ${isDestination ? '' : `<section class="event__section  event__section--destination">
             <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-            <p class="event__destination-description">${isDestinationDescription}</p>
+            <p class="event__destination-description">${isDestination ? '' : destination.description}</p>
             <div class="event__photos-container">
               <div class="event__photos-tape">
               ${picturesList}
@@ -155,7 +170,7 @@ export default class EventEditView extends AbstractStatefulView {
   #datepickerFrom = null;
   #datepickerTo = null;
 
-  constructor({eventTrip = EVENT_EMPTY, destinations, offers, onFormSubmit, onToggleClick, onDeleteClick, onCancelClick}) {
+  constructor({eventTrip = EVENT_EMPTY, destinations, offers, onFormSubmit, onToggleClick, onDeleteClick, onCanselClick}) {
     super();
     this._setState(EventEditView.parseEventToState(eventTrip));
     this.#destinations = destinations;
@@ -163,7 +178,7 @@ export default class EventEditView extends AbstractStatefulView {
     this.#handleFormSubmit = onFormSubmit;
     this.#handleToggleClick = onToggleClick;
     this.#handleDeleteClick = onDeleteClick;
-    this.#handleCancelClick = onCancelClick;
+    this.#handleCancelClick = onCanselClick;
 
     this._restoreHandlers();
   }
@@ -214,7 +229,7 @@ export default class EventEditView extends AbstractStatefulView {
 
     switch (false) {
       case true:
-        eventButtonReset.addEventListener('click', this.#CancelClickHandler);
+        eventButtonReset.addEventListener('click', this.#canselClickHandler);
         break;
       case false:
         eventButtonReset.addEventListener('click', this.#deleteClickHandler);
@@ -229,7 +244,7 @@ export default class EventEditView extends AbstractStatefulView {
     this.#handleToggleClick();
   };
 
-  #CancelClickHandler = (evt) => {
+  #canselClickHandler = (evt) => {
     evt.preventDefault();
     this.#handleCancelClick();
   };
@@ -334,7 +349,21 @@ export default class EventEditView extends AbstractStatefulView {
     );
   };
 
-  static parseEventToState = (eventTrip) => ({...eventTrip});
+  static parseEventToState(eventTrip) {
+    return {...eventTrip,
+      isDisabled: false,
+      isSaving: false,
+      isDeleting: false
+    };
+  }
 
-  static parseStateToEvent = (state) => state;
+  static parseStateToEvent(state) {
+    const event = state;
+
+    delete event.isDisabled;
+    delete event.isSaving;
+    delete event.isDeleting;
+
+    return event;
+  }
 }

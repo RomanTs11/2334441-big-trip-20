@@ -1,5 +1,5 @@
 import EventView from '../view/event-view';
-import { remove, render, replace } from '../framework/render';
+import {remove, render, replace} from '../framework/render';
 import EventEditView from '../view/event-edit-view';
 import { UpdateType, UserAction } from '../const';
 
@@ -49,7 +49,7 @@ export default class EventPresenter {
       onFormSubmit: this.#handleFormSubmit,
       onToggleClick: this.#handleToggleClick,
       onDeleteClick: this.#handleDeleteClick,
-      onCancelClick: this.#handleCancelClick,
+      onCanselClick: this.#handleCanselClick,
     });
 
     if (prevEventComponent === null || prevEventEditComponent === null) {
@@ -62,7 +62,8 @@ export default class EventPresenter {
     }
 
     if (this.#mode === Mode.EDITING) {
-      replace(this.#eventEditComponent, prevEventEditComponent);
+      replace(this.#eventComponent, prevEventEditComponent);
+      this.#mode = Mode.DEFAULT;
     }
 
     remove(prevEventComponent);
@@ -79,6 +80,41 @@ export default class EventPresenter {
       this.#eventEditComponent.reset(this.#eventTrip);
       this.#replaceEditorToEvent();
     }
+  }
+
+  setSaving() {
+    if (this.#mode === Mode.EDITING) {
+      this.#eventEditComponent.updateElement({
+        isDisabled: true,
+        isSaving: true,
+      });
+    }
+  }
+
+  setDeleting() {
+    if (this.#mode === Mode.EDITING) {
+      this.#eventEditComponent.updateElement({
+        isDisabled: true,
+        isDeleting: true
+      });
+    }
+  }
+
+  setAborting() {
+    if (this.#mode === Mode.DEFAULT) {
+      this.#eventComponent.shake();
+      return;
+    }
+
+    const resetFormState = () => {
+      this.#eventEditComponent.updateElement({
+        isDisabled: false,
+        isSaving: false,
+        isDeleting: false,
+      });
+    };
+
+    this.#eventEditComponent.shake(resetFormState);
   }
 
   #replaceEventToEditor() {
@@ -111,9 +147,8 @@ export default class EventPresenter {
     this.#replaceEditorToEvent();
   };
 
-  #handleCancelClick = () => {
+  #handleCanselClick = () => {
     this.#eventEditComponent.reset(this.#eventTrip);
-    this.#replaceEditorToEvent();
   };
 
   #handleDeleteClick = (event) => {
@@ -138,6 +173,5 @@ export default class EventPresenter {
       UpdateType.MINOR,
       eventTrip,
     );
-    this.#replaceEditorToEvent();
   };
 }

@@ -1,7 +1,6 @@
-/* eslint-disable no-console */
 import AbstractView from '../framework/view/abstract-view';
 import { getRefineEventDateShort, getRefineEventDateTime,
-  getRefineTimeDate, getTimeDifference } from '../utils';
+  getRefineTimeDate, getTimeDifference} from '../utils/events';
 
 function createEventOffersTemplate(offers) {
   return offers.map((offer) => `
@@ -14,10 +13,13 @@ function createEventOffersTemplate(offers) {
 
 function createEventTemplate(eventTrip, destinations, offers) {
   const {basePrice, dateFrom, dateTo, type, isFavorite} = eventTrip;
-  const currentOffers = offers.find((element) => element.type === type).offers;
   const destination = destinations.find((element) => element.id === eventTrip.destination);
   const isDestination = !destination;
   const isDestinationName = isDestination ? '' : destination.name;
+
+  const currentOffers = offers.find((element) => element.type === type).offers;
+  const selectedOffers = eventTrip.offers.map((offerId) => currentOffers.find((element) => element.id === offerId));
+  const offersList = createEventOffersTemplate(selectedOffers);
 
   const date = getRefineEventDateTime(dateFrom);
   const dateShort = getRefineEventDateShort(dateFrom);
@@ -50,7 +52,7 @@ function createEventTemplate(eventTrip, destinations, offers) {
          </p>
          <h4 class="visually-hidden">Offers:</h4>
          <ul class="event__selected-offers">
-         ${createEventOffersTemplate(currentOffers)}
+            ${offersList}
          </ul>
          <button class="${favoriteClassName}" type="button">
            <span class="visually-hidden">Add to favorite</span>

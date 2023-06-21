@@ -1,7 +1,7 @@
 import { remove, render, replace } from '../framework/render';
 import FilterView from '../view/filter-view';
 import { FilterType, UpdateType } from '../const';
-import { filter } from '../utils';
+import { filter } from '../utils/filter';
 
 export default class FilterPresenter {
   #filterContainer = null;

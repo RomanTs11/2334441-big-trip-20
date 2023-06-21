@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import AbstractView from '../framework/view/abstract-view';
 
 function createFilterItemTemplate(filters, currentFilterType) {

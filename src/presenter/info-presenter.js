@@ -1,22 +1,37 @@
 import TripInfoView from '../view/trip-info-view';
-import { render, RenderPosition } from '../framework/render';
+import { remove, render, RenderPosition } from '../framework/render';
 
 export default class InfoPresenter {
   #infoContainer = null;
-  #eventsModel = null;
+  #events = null;
+  #destinations = null;
+  #offers = null;
 
   #infoComponent = null;
 
-  constructor({infoContainer, eventsModel}) {
+  constructor({infoContainer, events, destinations, offers}) {
     this.#infoContainer = infoContainer;
-    this.#eventsModel = eventsModel;
+    this.#events = events;
+    this.#destinations = destinations;
+    this.#offers = offers;
   }
 
   init() {
     this.#infoComponent = new TripInfoView({
-      eventsModel: this.#eventsModel
+      events: this.#events,
+      destinations: this.#destinations,
+      offers: this.#offers
     });
 
     render(this.#infoComponent, this.#infoContainer, RenderPosition.AFTERBEGIN);
+  }
+
+  destroy() {
+    if (this.#infoComponent === null) {
+      return;
+    }
+
+    remove(this.#infoComponent);
+    this.#infoComponent = null;
   }
 }

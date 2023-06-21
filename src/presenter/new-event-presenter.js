@@ -1,8 +1,6 @@
-/* eslint-disable no-console */
 import EventEditView from '../view/event-edit-view';
 import { remove, render, RenderPosition } from '../framework/render';
 import { UpdateType, UserAction } from '../const';
-import { nanoid } from 'nanoid';
 
 export default class NewEventPresenter {
   #eventListContainer = null;
@@ -10,19 +8,24 @@ export default class NewEventPresenter {
   #offers = null;
   #handleDataChange = null;
   #handleDestroy = null;
+  #handleModeChange = null;
 
   #eventEditComponent = null;
 
-  constructor({eventListContainer, destinations, offers, onDataChange, onDestroy}) {
+  constructor({eventListContainer, destinations, offers, onDataChange, onDestroy, onModeChange}) {
     this.#eventListContainer = eventListContainer;
     this.#destinations = destinations;
     this.#offers = offers;
     this.#handleDataChange = onDataChange;
     this.#handleDestroy = onDestroy;
+    this.#handleModeChange = onModeChange;
   }
 
   init() {
-    console.log('DEBUG1');
+    if (this.#eventEditComponent !== null) {
+      return;
+    }
+
     this.#eventEditComponent = new EventEditView({
       destinations: this.#destinations,
       offers: this.#offers,
@@ -48,11 +51,30 @@ export default class NewEventPresenter {
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   }
 
+  setSaving() {
+    this.#eventEditComponent.updateElement({
+      isDisabled: true,
+      isSaving: true
+    });
+  }
+
+  setAborting() {
+    const resetFormState = () => {
+      this.#eventEditComponent.updateElement({
+        isDisabled: false,
+        isSaving: false,
+        isDeleting: false,
+      });
+    };
+
+    this.#eventEditComponent.shake(resetFormState);
+  }
+
   #handleFormSubmit = (event) => {
     this.#handleDataChange(
       UserAction.ADD_EVENT,
       UpdateType.MINOR,
-      {id: nanoid(), ...event},
+      event,
     );
     this.destroy();
   };

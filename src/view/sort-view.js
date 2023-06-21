@@ -52,7 +52,7 @@ export default class SortView extends AbstractView {
   }
 
   #sortTypeChangeHandler = (evt) => {
-    if (evt.target.tagName !== 'input') {
+    if (evt.target.tagName !== 'INPUT') {
       return;
     }
 
